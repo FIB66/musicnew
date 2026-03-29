@@ -11,11 +11,12 @@ Sito web community-driven per raccogliere **tutti i locali, concerti, feste, fes
 **Obiettivo reale:** Diventare il punto di riferimento in Italia per chi vuole sapere dove si fa musica live — dalla serata liscio nella piazza del paese, alla festa salsa nel circolo ARCI, al trio jazz nel bar, alla cover band nel pub, fino al festival nazionale. Tutti i generi, tutte le città, tutti gli eventi che non esistono da nessuna parte online.
 
 **Funzioni principali:**
-- Database locali (bar, club, venue) con info, genere musicale, città
+- Database locali (bar, club, venue) con info, genere musicale, città, provincia
 - Database eventi (concerti, feste, festival, jam session)
+- Filtro per regione tramite mappa interattiva
 - Ricerca per città
 - Utenti registrati che aggiungono contenuti
-- Commenti e recensioni
+- Commenti e recensioni (futuro)
 
 **Stack:**
 - **Frontend:** HTML + React (CDN) + Babel standalone
@@ -39,11 +40,15 @@ musicnew/
 ## 🗄️ Schema Database Supabase
 
 ### Tabella `venues` (locali)
-- id, nome, citta, indirizzo, genere, descrizione, sito_web
-- ⚠️ NON ha `created_at` — ordinare per `id` non per `created_at`
+- id, nome, citta, provincia, indirizzo, genere, descrizione, sito_web
+- ⚠️ NON ha `created_at` — ordinare per `id`
+- `provincia` = sigla (es. CB, IS, AN, MC...)
 
 ### Tabella `events` (eventi)
-- id, titolo, venue_id, citta, data, ora, tipo, genere, descrizione, immagine_url, creato_da
+- id, titolo, citta, provincia, data, ora, tipo, genere, descrizione
+- ⚠️ NON ha `created_at`
+- `provincia` = sigla (es. CB, IS, AN, MC...)
+- Mancano ancora: `venue_id`, `immagine_url`, `creato_da` (da aggiungere in futuro)
 
 ### Tabella `users` (gestita da Supabase Auth)
 - id, email, username, avatar_url
@@ -53,61 +58,54 @@ musicnew/
 - `events`: lettura per `anon` e `authenticated` ✅ — scrittura solo `authenticated` ✅
 
 ### Supabase Keys
-- Usare la **publishable key** (`sb_publishable_...`) — è la chiave corretta per progetti nuovi
-- La legacy anon key (`eyJhbGci...`) non funziona con i nuovi progetti
+- Usare la **publishable key** (`sb_publishable_...`)
 - SDK versione: `@supabase/supabase-js@2.49.4`
+- Le query usano **fetch diretto** (non Supabase JS) per evitare bug con `.in()` e `.or()`
 
 ---
 
 ## ✅ Cosa è stato fatto (cronologico)
 
 ### Sessione 1 — Pianificazione (2026-03-10)
-- Definito il concept: database italiano di locali e eventi musicali
-- Community-driven: gli utenti aggiungono i contenuti
-- Scelto lo stack: React CDN + Supabase + GitHub Pages
-- Definito schema database base
+- Definito il concept e lo stack
 - Creato questo diario
 
 ### Sessione 2 — Mappa + GitHub Desktop (2026-03-29)
-- Creato `italia-map.js` — Web Component riutilizzabile con D3 + TopoJSON
-- Integrata la mappa in `index.html` con tema rosso/nero MusicNew
-- Risolto conflitto React + Web Component con `MutationObserver`
-- Configurato GitHub Desktop e deploy su GitHub Pages
+- Creato `italia-map.js` con D3 + TopoJSON
+- Integrata mappa in `index.html`
+- Deploy su GitHub Pages
 
-### Sessione 3 — Auth + Sicurezza + Fix Database (2026-03-29)
-- Corretta la SUPABASE_KEY (publishable key per progetti nuovi)
-- Abilitato RLS su `venues` ed `events` con policies corrette
-- Implementato sistema login/registrazione con Supabase Auth (email + password)
-- Header aggiornato: avatar + logout se loggato, bottone Accedi se non loggato
-- Bottoni `+ Locale` e `+ Evento` visibili solo se autenticati
-- Scoperto che la tabella `venues` non ha `created_at` — ordinamento cambiato a `id`
-- Filtro regione mappa temporaneamente disabilitato (da rifare)
-- Locali visibili e inserimento funzionanti ✅
-- Decisione: login Facebook e Google dopo creazione pagina FB ufficiale
+### Sessione 3 — Auth + Sicurezza + Province + Fix (2026-03-29)
+- Corretta SUPABASE_KEY (publishable key)
+- RLS abilitato con policies corrette
+- Login/registrazione email + password funzionante
+- Bottoni + Locale e + Evento solo se loggati
+- Scoperto che venues/events non hanno `created_at` — ordinamento per `id`
+- Fix query: passaggio a fetch diretto per evitare errori 400
+- Aggiunta colonna `provincia` a venues ed events
+- Form inserimento aggiornato con menu a tendina 107 province italiane
+- Filtro mappa per regione funzionante tramite sigla provincia
+- Grid locali: 6 colonne, 24 card massimo in home
+- Inseriti 30 locali di test in Molise (da cancellare)
+- Testato inserimento eventi ✅
+- Filtro regione: cliccare regione mostra locali ed eventi di quella regione ✅
+- Decisione: ogni locale avrà pagina dettaglio con storico eventi + prossimo evento in card
 
 ---
 
 ## 🗺️ Roadmap — 4 Fasi
 
 ### Fase 1 — Struttura base ✅ COMPLETATA
-- [x] Creare repo GitHub `MUSICNEW`
-- [x] Creare account Supabase + progetto
-- [x] Creare tabelle `venues` ed `events` su Supabase
-- [x] Creare `index.html` con layout base
-- [x] Deploy su GitHub Pages
-- [x] Mappa interattiva delle regioni
-- [x] RLS e sicurezza database configurati
 
 ### Fase 2 — Autenticazione e inserimento contenuti ← SIAMO QUI
-- [x] Login/registrazione utenti con email + password
-- [x] Bottoni + Locale e + Evento solo se loggati
-- [x] Locali visibili sul sito
-- [x] Inserimento locali funzionante
-- [ ] Aggiungere colonna `created_at` alle tabelle `venues` ed `events`
-- [ ] Ripristinare filtro mappa per regione
-- [ ] Testare inserimento eventi
-- [ ] Pagina dettaglio locale con lista eventi
-- [ ] Ricerca per città
+- [x] Login/registrazione email + password
+- [x] Inserimento locali ed eventi funzionante
+- [x] Filtro per regione tramite mappa
+- [x] Provincia obbligatoria nel form
+- [ ] Pagina/modal dettaglio locale con storico eventi
+- [ ] Card locale mostra prossimo evento in programma
+- [ ] Ricerca per città (barra hero)
+- [ ] Aggiungere `venue_id` agli eventi (collegare evento al locale)
 
 ### Fase 2b — Login Sociale (dopo creazione pagina FB)
 - [ ] Login con Facebook
@@ -117,7 +115,7 @@ musicnew/
 - [ ] Commenti e recensioni locali
 - [ ] Profilo utente con eventi aggiunti
 - [ ] Filtri per genere musicale e tipo evento
-- [ ] Zoom su regione cliccata nella mappa
+- [ ] Cancellare i 30 locali di test del Molise
 
 ### Fase 4 — Crescita
 - [ ] SEO ottimizzato per ogni città/locale
@@ -129,14 +127,13 @@ musicnew/
 
 ## 🛠️ Note tecniche importanti
 
-- **Web Component mappa:** vive fuori da React nel DOM, gestito con `MutationObserver`
-- **Supabase SDK:** usare versione `2.49.4` esplicita, non `@2` generico
-- **Publishable key:** i nuovi progetti Supabase usano `sb_publishable_...` non `eyJhbGci...`
-- **venues.created_at:** NON ESISTE — usare `id` per ordinare
-- **Filtro regione mappa:** temporaneamente disabilitato, da rifare con fetch diretto
-- **React via CDN** — nessun build step
-- **GitHub Pages** — deploy automatico ad ogni push su `main`
-- **Authentication:** email confirm disabilitata — accesso immediato dopo registrazione
+- **Query Supabase:** usare `fetch` diretto invece di Supabase JS per evitare errori 400
+- **Filtro regione:** usa `provincia=in.(CB,IS)` nell'URL fetch
+- **REGIONE_PROVINCE:** mappa regione → sigle province (non città!)
+- **venues.created_at e events.created_at:** NON ESISTONO — usare `id`
+- **Grid locali:** `repeat(6, 1fr)` — 6 colonne fisse
+- **Supabase SDK:** `2.49.4` esplicita
+- **Authentication:** email confirm disabilitata
 
 ---
 
@@ -145,8 +142,8 @@ musicnew/
 - Modifica file → push su GitHub Desktop
 - Decisioni architetturali discusse prima di implementare
 - Un pezzo alla volta
-- **Prossimo step:** Aggiungere `created_at` alle tabelle + ripristinare filtro mappa + testare eventi
+- **Prossimo step:** Pagina dettaglio locale + prossimo evento in card + venue_id negli eventi
 
 ---
 
-*Ultimo aggiornamento: 2026-03-29 — Sessione 3 — Auth + Sicurezza + Fix Database*
+*Ultimo aggiornamento: 2026-03-29 — Sessione 3 completa*
