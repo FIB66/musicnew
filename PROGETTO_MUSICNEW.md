@@ -47,6 +47,10 @@ musicnew/
 ### Tabella `users` (gestita da Supabase Auth)
 - id, email, username, avatar_url
 
+### RLS Policies attive
+- `venues`: lettura pubblica ✅ — scrittura solo autenticati ✅
+- `events`: lettura pubblica ✅ — scrittura solo autenticati ✅
+
 ---
 
 ## ✅ Cosa è stato fatto (cronologico)
@@ -70,24 +74,40 @@ musicnew/
 - Configurato GitHub Desktop (cartella: Documenti → GitHub → musicnew)
 - Deploy funzionante su GitHub Pages
 
+### Sessione 3 — Supabase Auth + Sicurezza (2026-03-29)
+- Corretta la SUPABASE_KEY (sostituita secret key con anon/legacy key)
+- Abilitato RLS su `venues` ed `events`
+- Configurate RLS policies corrette:
+  - Lettura pubblica per tutti
+  - Scrittura solo per utenti autenticati (`auth.uid() IS NOT NULL`)
+- Decisione: autenticazione con **email + password** come base
+- In agenda: login sociale con **Facebook** e **Google** (dopo creazione pagina FB ufficiale)
+- Prossimo step: implementare login/registrazione email + password in `index.html`
+
 ---
 
 ## 🗺️ Roadmap — 4 Fasi
 
-### Fase 1 — Struttura base ← SIAMO QUI
+### Fase 1 — Struttura base ✅ COMPLETATA
 - [x] Creare repo GitHub `MUSICNEW`
 - [x] Creare account Supabase + progetto
 - [x] Creare tabelle `venues` ed `events` su Supabase
 - [x] Creare `index.html` con layout base
 - [x] Deploy su GitHub Pages
 - [x] Mappa interattiva delle regioni
+- [x] RLS e sicurezza database configurati
 
-### Fase 2 — Autenticazione e inserimento contenuti
-- [ ] Login/registrazione utenti (Supabase Auth)
-- [ ] Form aggiunta locale
-- [ ] Form aggiunta evento
+### Fase 2 — Autenticazione e inserimento contenuti ← SIAMO QUI
+- [ ] Login/registrazione utenti con email + password (Supabase Auth)
+- [ ] I bottoni + Locale e + Evento visibili solo se loggato
+- [ ] Form aggiunta locale (solo autenticati)
+- [ ] Form aggiunta evento (solo autenticati)
 - [ ] Pagina dettaglio locale con lista eventi
 - [ ] Ricerca per città
+
+### Fase 2b — Login Sociale (dopo creazione pagina FB)
+- [ ] Login con Facebook (dopo creazione pagina ufficiale MusicNew)
+- [ ] Login con Google
 
 ### Fase 3 — UX e community
 - [ ] Commenti e recensioni locali
@@ -107,7 +127,8 @@ musicnew/
 
 - **Web Component mappa:** vive fuori da React nel DOM, gestito con `MutationObserver` che lo riattacca ogni volta che l'anchor `#map-inline-anchor` riappare
 - **Supabase** — usare `@supabase/supabase-js` via CDN
-- **Supabase URL e ANON KEY** — già inseriti nell'`index.html`
+- **Supabase ANON KEY** — è la legacy anon key (`eyJhbGci...`), NON la publishable key (`sb_publishable_...`)
+- **RLS** — abilitato su tutte le tabelle, NON disabilitare mai
 - **React via CDN** — nessun build step
 - **GitHub Pages** — deploy automatico ad ogni push su `main`
 - **Download file:** usare sempre lo ZIP per scaricare più file insieme
@@ -120,8 +141,8 @@ musicnew/
 - Decisioni architetturali discusse prima di implementare
 - Un pezzo alla volta
 - Scaricare sempre i file come ZIP
-- **Prossimo step:** Fase 2 — Login/registrazione utenti con Supabase Auth
+- **Prossimo step:** Implementare login/registrazione email + password
 
 ---
 
-*Ultimo aggiornamento: 2026-03-29 — Sessione 2 — Mappa + GitHub Desktop*
+*Ultimo aggiornamento: 2026-03-29 — Sessione 3 — Supabase Auth + Sicurezza*

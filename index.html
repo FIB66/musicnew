@@ -301,6 +301,37 @@
       margin-top: 80px;
     }
 
+    /* AUTH */
+    .user-area { display: flex; align-items: center; gap: 10px; }
+    .user-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--red); display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: white; cursor: pointer;
+      border: 2px solid var(--border); transition: border-color 0.2s; flex-shrink: 0;
+    }
+    .user-avatar:hover { border-color: var(--red2); }
+    .user-name { font-size: 13px; color: var(--gray); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-logout {
+      background: none; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--gray); font-family: var(--font-body); font-size: 12px;
+      padding: 6px 12px; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+    .btn-login {
+      background: none; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--white); font-family: var(--font-body); font-size: 14px; font-weight: 500;
+      padding: 8px 16px; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-login:hover { border-color: var(--red); color: var(--red); }
+    .auth-tabs { display: flex; gap: 0; margin-bottom: 28px; border-bottom: 1px solid var(--border); }
+    .auth-tab {
+      flex: 1; padding: 12px; background: none; border: none;
+      color: var(--gray); font-family: var(--font-body); font-size: 15px;
+      cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.2s;
+    }
+    .auth-tab.active { color: var(--white); border-bottom-color: var(--red); }
+    .auth-error { color: var(--red); font-size: 13px; margin-bottom: 16px; padding: 10px 14px; background: rgba(230,57,70,0.1); border-radius: 8px; }
+
     /* ── SEZIONE MAPPA ── */
     .map-section {
       padding: 56px 24px;
@@ -550,6 +581,69 @@ const REGIONE_CITTA = {
   "Valle d'Aosta": ['Aosta'],
 };
 
+// MODAL AUTH (Login + Registrazione)
+function ModalAuth({ onClose, onLogged }) {
+  const [authTab, setAuthTab] = useState('login'); // 'login' | 'register'
+  const [form, setForm] = useState({ email: '', password: '', username: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async () => {
+    if (!form.email || !form.password) { setError('Inserisci email e password'); return; }
+    setLoading(true); setError('');
+    const { data, error } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    onLogged(data.user);
+    onClose();
+  };
+
+  const handleRegister = async () => {
+    if (!form.email || !form.password || !form.username) { setError('Tutti i campi sono obbligatori'); return; }
+    if (form.password.length < 6) { setError('La password deve essere di almeno 6 caratteri'); return; }
+    setLoading(true); setError('');
+    const { data, error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: { data: { username: form.username } }
+    });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    onLogged(data.user);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="auth-tabs">
+          <button className={`auth-tab ${authTab==='login' ? 'active' : ''}`} onClick={() => { setAuthTab('login'); setError(''); }}>Accedi</button>
+          <button className={`auth-tab ${authTab==='register' ? 'active' : ''}`} onClick={() => { setAuthTab('register'); setError(''); }}>Registrati</button>
+        </div>
+        {error && <div className="auth-error">⚠️ {error}</div>}
+        {authTab === 'register' && (
+          <div className="form-group">
+            <label>Username *</label>
+            <input value={form.username} onChange={e => setForm({...form, username: e.target.value})} placeholder="Es. mario_musica" />
+          </div>
+        )}
+        <div className="form-group">
+          <label>Email *</label>
+          <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="la-tua@email.it" />
+        </div>
+        <div className="form-group">
+          <label>Password *</label>
+          <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder={authTab==='register' ? 'Minimo 6 caratteri' : '••••••••'} />
+        </div>
+        <button className="btn-submit" onClick={authTab==='login' ? handleLogin : handleRegister} disabled={loading}>
+          {loading ? 'Attendere...' : authTab==='login' ? '🎵 Accedi' : '🎸 Crea account'}
+        </button>
+        <button className="btn-cancel" onClick={onClose}>Annulla</button>
+      </div>
+    </div>
+  );
+}
+
 // APP
 function App() {
   const [tab, setTab] = useState('home');
@@ -557,10 +651,33 @@ function App() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [modal, setModal] = useState(null); // 'venue' | 'event'
+  const [modal, setModal] = useState(null); // 'venue' | 'event' | 'auth'
   const [toast, setToast] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState(null);
+  const [user, setUser] = useState(null);
   const mapRef = React.useRef(null);
+
+  // Controlla sessione attiva all'avvio
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    showToast('Arrivederci! 👋');
+  };
+
+  const getInitials = (u) => {
+    const name = u?.user_metadata?.username || u?.email || '?';
+    return name.charAt(0).toUpperCase();
+  };
 
   const showToast = (msg, type='success') => setToast({ msg, type });
 
@@ -627,8 +744,16 @@ function App() {
           <button className={tab==='home' ? 'active' : ''} onClick={() => setTab('home')}>Home</button>
           <button className={tab==='venues' ? 'active' : ''} onClick={() => setTab('venues')}>Locali</button>
           <button className={tab==='events' ? 'active' : ''} onClick={() => setTab('events')}>Eventi</button>
-          <button className="btn-add" onClick={() => setModal('venue')}>+ Locale</button>
-          <button className="btn-add" onClick={() => setModal('event')}>+ Evento</button>
+          {user && <button className="btn-add" onClick={() => setModal('venue')}>+ Locale</button>}
+          {user && <button className="btn-add" onClick={() => setModal('event')}>+ Evento</button>}
+          {user ? (
+            <div className="user-area">
+              <div className="user-avatar" title={user.user_metadata?.username || user.email}>{getInitials(user)}</div>
+              <button className="btn-logout" onClick={handleLogout}>Esci</button>
+            </div>
+          ) : (
+            <button className="btn-login" onClick={() => setModal('auth')}>Accedi</button>
+          )}
         </nav>
       </header>
 
@@ -771,7 +896,7 @@ function App() {
       {tab === 'venues' && <div className="section">
         <div className="section-header">
           <div className="section-title">TUTTI I <span>LOCALI</span></div>
-          <button className="btn-add" style={{padding:'8px 20px', background:'var(--red)', border:'none', borderRadius:8, color:'white', cursor:'pointer', fontFamily:'var(--font-body)', fontWeight:600}} onClick={() => setModal('venue')}>+ Aggiungi</button>
+          {user && <button className="btn-add" style={{padding:'8px 20px', background:'var(--red)', border:'none', borderRadius:8, color:'white', cursor:'pointer', fontFamily:'var(--font-body)', fontWeight:600}} onClick={() => setModal('venue')}>+ Aggiungi</button>}
         </div>
         {loading ? <div className="loading"><div className="spinner"/></div> :
           venues.length === 0 ?
@@ -800,7 +925,7 @@ function App() {
       {tab === 'events' && <div className="section">
         <div className="section-header">
           <div className="section-title">TUTTI GLI <span>EVENTI</span></div>
-          <button className="btn-add" style={{padding:'8px 20px', background:'var(--red)', border:'none', borderRadius:8, color:'white', cursor:'pointer', fontFamily:'var(--font-body)', fontWeight:600}} onClick={() => setModal('event')}>+ Aggiungi</button>
+          {user && <button className="btn-add" style={{padding:'8px 20px', background:'var(--red)', border:'none', borderRadius:8, color:'white', cursor:'pointer', fontFamily:'var(--font-body)', fontWeight:600}} onClick={() => setModal('event')}>+ Aggiungi</button>}
         </div>
         {loading ? <div className="loading"><div className="spinner"/></div> :
           events.length === 0 ?
@@ -831,6 +956,7 @@ function App() {
       </div>}
 
       {/* MODALS */}
+      {modal === 'auth' && <ModalAuth onClose={() => setModal(null)} onLogged={(u) => { setUser(u); showToast('Bentornato! 🎵'); }} />}
       {modal === 'venue' && <ModalVenue onClose={() => setModal(null)} onSaved={() => { loadVenues(); showToast('Locale aggiunto! 🎸'); }} />}
       {modal === 'event' && <ModalEvent onClose={() => setModal(null)} onSaved={() => { loadEvents(); showToast('Evento aggiunto! 🎤'); }} />}
 
