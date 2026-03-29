@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script src="italia-map.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -300,6 +301,63 @@
       margin-top: 80px;
     }
 
+    /* ── SEZIONE MAPPA ── */
+    .map-section {
+      padding: 56px 24px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(230,57,70,0.04) 0%, transparent 100%);
+    }
+    .map-section-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 380px; gap: 64px; align-items: center;
+    }
+    .map-section-text { }
+    .map-eyebrow {
+      font-size: 11px; font-weight: 600; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--red); margin-bottom: 16px;
+    }
+    .map-section-text h2 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5vw, 60px);
+      line-height: 0.95; letter-spacing: 1px; margin-bottom: 20px;
+    }
+    .map-section-text h2 em { color: var(--red); font-style: normal; }
+    .map-section-text p { font-size: 16px; color: var(--gray); line-height: 1.65; max-width: 420px; }
+    .map-region-badge {
+      display: inline-flex; align-items: center; gap: 10px;
+      margin-top: 28px; padding: 12px 20px;
+      background: rgba(230,57,70,0.12); border: 1px solid rgba(230,57,70,0.3);
+      border-radius: 12px; font-size: 15px; font-weight: 500;
+      transition: all 0.3s;
+    }
+    .map-region-badge .badge-name { color: var(--red); font-family: var(--font-display); font-size: 22px; letter-spacing: 1px; }
+    .map-region-badge .badge-count { color: var(--gray); font-size: 13px; }
+    .map-region-badge.hidden { display: none; }
+    .map-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      margin-top: 12px; padding: 12px 24px;
+      background: var(--red); border: none; border-radius: 10px;
+      color: var(--white); font-family: var(--font-body);
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s; text-decoration: none;
+    }
+    .map-btn:hover { background: var(--red2); }
+
+    /* Override stile web component per tema dark */
+    .map-col-wrap {
+      display: flex; justify-content: center; align-items: center;
+    }
+    italia-map {
+      --im-color-base: #e63946;
+      --im-color-hover: #ff6b6b;
+      filter: drop-shadow(0 0 40px rgba(230,57,70,0.25));
+    }
+
+    @media (max-width: 900px) {
+      .map-section-inner { grid-template-columns: 1fr; gap: 40px; }
+      .map-col-wrap { order: -1; }
+    }
+
     @media (max-width: 600px) {
       .stats-bar { gap: 24px; }
       .form-row { grid-template-columns: 1fr; }
@@ -457,6 +515,30 @@ function ModalEvent({ onClose, onSaved }) {
   );
 }
 
+// Mappa regione → città principali (per filtrare su Supabase)
+const REGIONE_CITTA = {
+  'Lombardia': ['Milano','Bergamo','Brescia','Como','Monza','Pavia','Varese','Lecco','Mantova','Cremona'],
+  'Lazio': ['Roma','Latina','Frosinone','Viterbo','Rieti'],
+  'Campania': ['Napoli','Salerno','Caserta','Avellino','Benevento'],
+  'Sicilia': ['Palermo','Catania','Messina','Siracusa','Agrigento','Trapani','Ragusa','Enna','Caltanissetta'],
+  'Veneto': ['Venezia','Verona','Padova','Vicenza','Treviso','Belluno','Rovigo'],
+  'Piemonte': ['Torino','Alessandria','Asti','Biella','Cuneo','Novara','Verbania','Vercelli'],
+  'Emilia-Romagna': ['Bologna','Modena','Parma','Ferrara','Reggio Emilia','Rimini','Forlì','Ravenna','Piacenza'],
+  'Toscana': ['Firenze','Pisa','Siena','Lucca','Arezzo','Grosseto','Livorno','Massa','Pistoia','Prato'],
+  'Puglia': ['Bari','Lecce','Taranto','Foggia','Brindisi','Bat'],
+  'Calabria': ['Reggio Calabria','Catanzaro','Cosenza','Crotone','Vibo Valentia'],
+  'Sardegna': ['Cagliari','Sassari','Nuoro','Oristano','Sud Sardegna'],
+  'Liguria': ['Genova','La Spezia','Savona','Imperia'],
+  'Marche': ['Ancona','Pesaro','Ascoli Piceno','Fermo','Macerata'],
+  'Abruzzo': ['L\'Aquila','Chieti','Pescara','Teramo'],
+  'Umbria': ['Perugia','Terni'],
+  'Friuli-Venezia Giulia': ['Trieste','Udine','Pordenone','Gorizia'],
+  'Trentino-Alto Adige': ['Trento','Bolzano'],
+  'Basilicata': ['Potenza','Matera'],
+  'Molise': ['Campobasso','Isernia'],
+  "Valle d'Aosta": ['Aosta'],
+};
+
 // APP
 function App() {
   const [tab, setTab] = useState('home');
@@ -466,6 +548,8 @@ function App() {
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(null); // 'venue' | 'event'
   const [toast, setToast] = useState(null);
+  const [selectedRegion, setSelectedRegion] = useState(null);
+  const mapRef = React.useRef(null);
 
   const showToast = (msg, type='success') => setToast({ msg, type });
 
@@ -473,21 +557,56 @@ function App() {
     setLoading(true);
     let q = supabase.from('venues').select('*').order('created_at', { ascending: false });
     if (search) q = q.ilike('citta', `%${search}%`);
+    else if (selectedRegion) {
+      const cities = REGIONE_CITTA[selectedRegion] || [];
+      if (cities.length) q = q.or(cities.map(c => `citta.ilike.%${c}%`).join(','));
+    }
     const { data } = await q;
     setVenues(data || []);
     setLoading(false);
-  }, [search]);
+  }, [search, selectedRegion]);
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
     let q = supabase.from('events').select('*').order('data', { ascending: true });
     if (search) q = q.ilike('citta', `%${search}%`);
+    else if (selectedRegion) {
+      const cities = REGIONE_CITTA[selectedRegion] || [];
+      if (cities.length) q = q.or(cities.map(c => `citta.ilike.%${c}%`).join(','));
+    }
     const { data } = await q;
     setEvents(data || []);
     setLoading(false);
-  }, [search]);
+  }, [search, selectedRegion]);
 
   useEffect(() => { loadVenues(); loadEvents(); }, [loadVenues, loadEvents]);
+
+  // Crea il web component della mappa nel div container (compatibile con React/Babel)
+  useEffect(() => {
+    const container = mapRef.current;
+    if (!container) return;
+
+    let mapEl = container.querySelector('italia-map');
+    if (!mapEl) {
+      mapEl = document.createElement('italia-map');
+      mapEl.setAttribute('width', '300');
+      mapEl.setAttribute('height', '500');
+      mapEl.setAttribute('color-base', '#e63946');
+      mapEl.setAttribute('color-hover', '#ff6b6b');
+      mapEl.setAttribute('show-list', 'false');
+      mapEl.setAttribute('show-info', 'false');
+      container.appendChild(mapEl);
+    }
+
+    const handler = (e) => {
+      setSelectedRegion(e.detail.name);
+      setSearch('');
+      document.querySelector('.stats-bar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    mapEl.addEventListener('region-select', handler);
+    return () => mapEl.removeEventListener('region-select', handler);
+  }, []);
+
 
   const handleSearch = (e) => { e.preventDefault(); loadVenues(); loadEvents(); };
 
@@ -535,10 +654,81 @@ function App() {
           </div>
         </div>
 
+        {/* ESPLORA PER REGIONE */}
+        <div className="map-section">
+          <div className="map-section-inner">
+            <div className="map-section-text">
+              <div className="map-eyebrow">🗺 Esplora per regione</div>
+              <h2>DOVE<br/>SUONA<br/><em>L'ITALIA</em></h2>
+              <p>Clicca sulla tua regione per scoprire i locali e gli eventi musicali vicino a te.</p>
+
+              {selectedRegion ? (
+                <div className="map-region-badge">
+                  <span>📍</span>
+                  <span className="badge-name">{selectedRegion}</span>
+                  <span className="badge-count">
+                    {venues.length} local{venues.length===1?'e':'i'} · {events.length} event{events.length===1?'o':'i'}
+                  </span>
+                  <button
+                    onClick={() => { setSelectedRegion(null); }}
+                    style={{marginLeft:8, background:'none', border:'none', color:'var(--gray)', cursor:'pointer', fontSize:18, lineHeight:1}}
+                    title="Deseleziona regione"
+                  >×</button>
+                </div>
+              ) : (
+                <div className="map-region-badge" style={{opacity:0.4}}>
+                  <span>👆</span>
+                  <span style={{color:'var(--gray)', fontSize:14}}>Seleziona una regione sulla mappa</span>
+                </div>
+              )}
+            </div>
+
+            <div className="map-col-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 150 220 430" width="240"
+                style={{filter:'drop-shadow(0 0 28px rgba(230,57,70,0.45))'}}>
+                {/* Penisola + Nord Italia */}
+                <path fill="#e63946" fillOpacity="0.8" stroke="#ff6b6b" strokeWidth="0.8"
+                  d="M60,152 L68,150 L78,151 L88,153 L96,156 L104,158 L114,158 L122,156
+                     L132,154 L140,155 L148,158 L156,162 L162,168 L166,176 L168,184
+                     L170,192 L174,198 L180,202 L186,206 L190,212 L192,220 L190,228
+                     L186,234 L180,238 L174,240 L168,242 L164,248 L162,256 L164,264
+                     L168,272 L174,278 L180,284 L184,292 L184,300 L180,308 L174,314
+                     L168,318 L162,322 L158,330 L156,340 L154,350 L152,360 L148,368
+                     L144,376 L140,382 L136,388 L130,394 L124,400 L118,408 L114,416
+                     L112,424 L110,432 L108,440 L104,448 L98,454 L92,458 L88,462
+                     L84,468 L82,474 L84,480 L90,484 L96,484 L102,480 L106,474
+                     L108,468 L104,462 L100,458 L100,452 L104,446 L110,442 L116,444
+                     L120,450 L120,458 L116,464 L112,470 L112,476 L116,480 L122,482
+                     L128,480 L132,474 L132,468 L128,462 L124,456 L126,450 L132,446
+                     L138,448 L142,454 L142,462 L138,468 L134,474 L134,480 L140,484
+                     L146,484 L150,480 L150,472 L146,466 L142,460 L144,454 L150,450
+                     L156,452 L160,458 L160,466 L156,472 L152,478 L154,484 L160,488
+                     L166,488 L170,482 L168,476 L164,470 L164,464 L170,460 L176,462
+                     L178,470 L176,478 L170,484 L172,490 L178,492 L184,488 L184,482
+                     L180,476 L178,468 L182,462 L188,462 L192,468 L192,476 L188,482
+                     L186,488 L190,492 L196,490 L198,484 L194,478 L192,470 L196,464
+                     L202,464 L206,470 L206,478 L202,484 L202,490
+                     L78,151 Z" />
+                {/* Sicilia */}
+                <path fill="#e63946" fillOpacity="0.8" stroke="#ff6b6b" strokeWidth="0.8"
+                  d="M56,490 L66,486 L78,484 L90,484 L100,488 L108,494 L112,502
+                     L108,510 L100,514 L90,516 L78,514 L68,510 L58,504 L54,496 Z" />
+                {/* Sardegna */}
+                <path fill="#e63946" fillOpacity="0.8" stroke="#ff6b6b" strokeWidth="0.8"
+                  d="M18,300 L26,294 L34,292 L42,294 L48,300 L50,310 L50,322
+                     L48,334 L44,344 L36,350 L26,350 L18,344 L14,334 L14,320
+                     L16,308 Z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
         {/* ULTIMI LOCALI */}
         <div className="section">
           <div className="section-header">
-            <div className="section-title">ULTIMI <span>LOCALI</span></div>
+            <div className="section-title">
+              {selectedRegion ? <>{selectedRegion.toUpperCase().split(' ')[0]} <span>LOCALI</span></> : <>ULTIMI <span>LOCALI</span></>}
+            </div>
             <button className="see-all" onClick={() => setTab('venues')}>Vedi tutti →</button>
           </div>
           {loading ? <div className="loading"><div className="spinner"/><span>Caricamento...</span></div> :
@@ -569,7 +759,9 @@ function App() {
         {/* PROSSIMI EVENTI */}
         <div className="section">
           <div className="section-header">
-            <div className="section-title">PROSSIMI <span>EVENTI</span></div>
+            <div className="section-title">
+              {selectedRegion ? <>EVENTI <span>IN ZONA</span></> : <>PROSSIMI <span>EVENTI</span></>}
+            </div>
             <button className="see-all" onClick={() => setTab('events')}>Vedi tutti →</button>
           </div>
           {events.length === 0 ?
