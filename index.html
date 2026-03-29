@@ -443,11 +443,11 @@ function Toast({ msg, type, onClose }) {
 
 // MODAL AGGIUNGI LOCALE
 function ModalVenue({ onClose, onSaved }) {
-  const [form, setForm] = useState({ nome:'', citta:'', indirizzo:'', genere:'Rock', descrizione:'', sito_web:'' });
+  const [form, setForm] = useState({ nome:'', citta:'', provincia:'', indirizzo:'', genere:'Rock', descrizione:'', sito_web:'' });
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    if (!form.nome || !form.citta) return alert('Nome e città sono obbligatori');
+    if (!form.nome || !form.citta || !form.provincia) return alert('Nome, città e provincia sono obbligatori');
     setSaving(true);
     const { error } = await supabase.from('venues').insert([form]);
     setSaving(false);
@@ -470,15 +470,24 @@ function ModalVenue({ onClose, onSaved }) {
             <input value={form.citta} onChange={e => setForm({...form, citta: e.target.value})} placeholder="Es. Bologna" />
           </div>
           <div className="form-group">
+            <label>Provincia *</label>
+            <select value={form.provincia} onChange={e => setForm({...form, provincia: e.target.value})}>
+              <option value="">— Seleziona —</option>
+              {PROVINCE.map(p => <option key={p.s} value={p.s}>{p.s} — {p.n}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
             <label>Genere principale</label>
             <select value={form.genere} onChange={e => setForm({...form, genere: e.target.value})}>
               {GENERI.map(g => <option key={g}>{g}</option>)}
             </select>
           </div>
-        </div>
-        <div className="form-group">
-          <label>Indirizzo</label>
-          <input value={form.indirizzo} onChange={e => setForm({...form, indirizzo: e.target.value})} placeholder="Via..." />
+          <div className="form-group">
+            <label>Indirizzo</label>
+            <input value={form.indirizzo} onChange={e => setForm({...form, indirizzo: e.target.value})} placeholder="Via..." />
+          </div>
         </div>
         <div className="form-group">
           <label>Descrizione</label>
@@ -497,7 +506,7 @@ function ModalVenue({ onClose, onSaved }) {
 
 // MODAL AGGIUNGI EVENTO
 function ModalEvent({ onClose, onSaved }) {
-  const [form, setForm] = useState({ titolo:'', citta:'', data:'', ora:'', tipo:'Concerto', genere:'Rock', descrizione:'' });
+  const [form, setForm] = useState({ titolo:'', citta:'', provincia:'', data:'', ora:'', tipo:'Concerto', genere:'Rock', descrizione:'' });
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
@@ -524,9 +533,24 @@ function ModalEvent({ onClose, onSaved }) {
             <input value={form.citta} onChange={e => setForm({...form, citta: e.target.value})} placeholder="Es. Ancona" />
           </div>
           <div className="form-group">
+            <label>Provincia *</label>
+            <select value={form.provincia} onChange={e => setForm({...form, provincia: e.target.value})}>
+              <option value="">— Seleziona —</option>
+              {PROVINCE.map(p => <option key={p.s} value={p.s}>{p.s} — {p.n}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
             <label>Tipo</label>
             <select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})}>
               {TIPI_EVENTO.map(t => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Genere musicale</label>
+            <select value={form.genere} onChange={e => setForm({...form, genere: e.target.value})}>
+              {GENERI.map(g => <option key={g}>{g}</option>)}
             </select>
           </div>
         </div>
@@ -541,12 +565,6 @@ function ModalEvent({ onClose, onSaved }) {
           </div>
         </div>
         <div className="form-group">
-          <label>Genere musicale</label>
-          <select value={form.genere} onChange={e => setForm({...form, genere: e.target.value})}>
-            {GENERI.map(g => <option key={g}>{g}</option>)}
-          </select>
-        </div>
-        <div className="form-group">
           <label>Descrizione</label>
           <textarea value={form.descrizione} onChange={e => setForm({...form, descrizione: e.target.value})} placeholder="Raccontaci l'evento..." />
         </div>
@@ -557,29 +575,60 @@ function ModalEvent({ onClose, onSaved }) {
   );
 }
 
-// Mappa regione → città principali (per filtrare su Supabase)
-const REGIONE_CITTA = {
-  'Lombardia': ['Milano','Bergamo','Brescia','Como','Monza','Pavia','Varese','Lecco','Mantova','Cremona'],
-  'Lazio': ['Roma','Latina','Frosinone','Viterbo','Rieti'],
-  'Campania': ['Napoli','Salerno','Caserta','Avellino','Benevento'],
-  'Sicilia': ['Palermo','Catania','Messina','Siracusa','Agrigento','Trapani','Ragusa','Enna','Caltanissetta'],
-  'Veneto': ['Venezia','Verona','Padova','Vicenza','Treviso','Belluno','Rovigo'],
-  'Piemonte': ['Torino','Alessandria','Asti','Biella','Cuneo','Novara','Verbania','Vercelli'],
-  'Emilia-Romagna': ['Bologna','Modena','Parma','Ferrara','Reggio Emilia','Rimini','Forlì','Ravenna','Piacenza'],
-  'Toscana': ['Firenze','Pisa','Siena','Lucca','Arezzo','Grosseto','Livorno','Massa','Pistoia','Prato'],
-  'Puglia': ['Bari','Lecce','Taranto','Foggia','Brindisi','Bat'],
-  'Calabria': ['Reggio Calabria','Catanzaro','Cosenza','Crotone','Vibo Valentia'],
-  'Sardegna': ['Cagliari','Sassari','Nuoro','Oristano','Sud Sardegna'],
-  'Liguria': ['Genova','La Spezia','Savona','Imperia'],
-  'Marche': ['Ancona','Pesaro','Ascoli Piceno','Fermo','Macerata'],
-  'Abruzzo': ['L\'Aquila','Chieti','Pescara','Teramo'],
-  'Umbria': ['Perugia','Terni'],
-  'Friuli-Venezia Giulia': ['Trieste','Udine','Pordenone','Gorizia'],
-  'Trentino-Alto Adige': ['Trento','Bolzano'],
-  'Basilicata': ['Potenza','Matera'],
-  'Molise': ['Campobasso','Isernia'],
-  "Valle d'Aosta": ['Aosta'],
+// Mappa regione → province (sigla)
+const REGIONE_PROVINCE = {
+  'Lombardia': ['BG','BS','CO','CR','LC','LO','MB','MI','MN','PV','SO','VA'],
+  'Lazio': ['FR','LT','RI','RM','VT'],
+  'Campania': ['AV','BN','CE','NA','SA'],
+  'Sicilia': ['AG','CL','CT','EN','ME','PA','RG','SR','TP'],
+  'Veneto': ['BL','PD','RO','TV','VE','VI','VR'],
+  'Piemonte': ['AL','AT','BI','CN','NO','TO','VB','VC'],
+  'Emilia-Romagna': ['BO','FE','FC','MO','PR','PC','RA','RE','RN'],
+  'Toscana': ['AR','FI','GR','LI','LU','MS','PI','PT','PO','SI'],
+  'Puglia': ['BA','BT','BR','FG','LE','TA'],
+  'Calabria': ['CZ','CS','KR','RC','VV'],
+  'Sardegna': ['CA','NU','OR','SS','SU'],
+  'Liguria': ['GE','IM','SP','SV'],
+  'Marche': ['AN','AP','FM','MC','PU'],
+  'Abruzzo': ['AQ','CH','PE','TE'],
+  'Umbria': ['PG','TR'],
+  'Friuli-Venezia Giulia': ['GO','PN','TS','UD'],
+  'Trentino-Alto Adige': ['BZ','TN'],
+  'Basilicata': ['MT','PZ'],
+  'Molise': ['CB','IS'],
+  "Valle d'Aosta": ['AO'],
 };
+
+// Lista completa province italiane per il menu
+const PROVINCE = [
+  {s:'AG',n:'Agrigento'},{s:'AL',n:'Alessandria'},{s:'AN',n:'Ancona'},{s:'AO',n:'Aosta'},
+  {s:'AQ',n:'L\'Aquila'},{s:'AR',n:'Arezzo'},{s:'AP',n:'Ascoli Piceno'},{s:'AT',n:'Asti'},
+  {s:'AV',n:'Avellino'},{s:'BA',n:'Bari'},{s:'BT',n:'Barletta-Andria-Trani'},{s:'BL',n:'Belluno'},
+  {s:'BN',n:'Benevento'},{s:'BG',n:'Bergamo'},{s:'BI',n:'Biella'},{s:'BO',n:'Bologna'},
+  {s:'BZ',n:'Bolzano'},{s:'BS',n:'Brescia'},{s:'BR',n:'Brindisi'},{s:'CA',n:'Cagliari'},
+  {s:'CL',n:'Caltanissetta'},{s:'CB',n:'Campobasso'},{s:'CE',n:'Caserta'},{s:'CT',n:'Catania'},
+  {s:'CZ',n:'Catanzaro'},{s:'CH',n:'Chieti'},{s:'CO',n:'Como'},{s:'CS',n:'Cosenza'},
+  {s:'CR',n:'Cremona'},{s:'KR',n:'Crotone'},{s:'CN',n:'Cuneo'},{s:'EN',n:'Enna'},
+  {s:'FM',n:'Fermo'},{s:'FE',n:'Ferrara'},{s:'FI',n:'Firenze'},{s:'FG',n:'Foggia'},
+  {s:'FC',n:'Forlì-Cesena'},{s:'FR',n:'Frosinone'},{s:'GE',n:'Genova'},{s:'GO',n:'Gorizia'},
+  {s:'GR',n:'Grosseto'},{s:'IM',n:'Imperia'},{s:'IS',n:'Isernia'},{s:'SP',n:'La Spezia'},
+  {s:'LT',n:'Latina'},{s:'LC',n:'Lecco'},{s:'LE',n:'Lecce'},{s:'LI',n:'Livorno'},
+  {s:'LO',n:'Lodi'},{s:'LU',n:'Lucca'},{s:'MC',n:'Macerata'},{s:'MN',n:'Mantova'},
+  {s:'MS',n:'Massa-Carrara'},{s:'MT',n:'Matera'},{s:'ME',n:'Messina'},{s:'MI',n:'Milano'},
+  {s:'MO',n:'Modena'},{s:'MB',n:'Monza e Brianza'},{s:'NA',n:'Napoli'},{s:'NO',n:'Novara'},
+  {s:'NU',n:'Nuoro'},{s:'OR',n:'Oristano'},{s:'PD',n:'Padova'},{s:'PA',n:'Palermo'},
+  {s:'PR',n:'Parma'},{s:'PV',n:'Pavia'},{s:'PG',n:'Perugia'},{s:'PU',n:'Pesaro e Urbino'},
+  {s:'PE',n:'Pescara'},{s:'PC',n:'Piacenza'},{s:'PI',n:'Pisa'},{s:'PT',n:'Pistoia'},
+  {s:'PN',n:'Pordenone'},{s:'PZ',n:'Potenza'},{s:'PO',n:'Prato'},{s:'RG',n:'Ragusa'},
+  {s:'RA',n:'Ravenna'},{s:'RC',n:'Reggio Calabria'},{s:'RE',n:'Reggio Emilia'},{s:'RI',n:'Rieti'},
+  {s:'RN',n:'Rimini'},{s:'RM',n:'Roma'},{s:'RO',n:'Rovigo'},{s:'SA',n:'Salerno'},
+  {s:'SS',n:'Sassari'},{s:'SV',n:'Savona'},{s:'SI',n:'Siena'},{s:'SR',n:'Siracusa'},
+  {s:'SO',n:'Sondrio'},{s:'SU',n:'Sud Sardegna'},{s:'TA',n:'Taranto'},{s:'TE',n:'Teramo'},
+  {s:'TR',n:'Terni'},{s:'TO',n:'Torino'},{s:'TP',n:'Trapani'},{s:'TN',n:'Trento'},
+  {s:'TV',n:'Treviso'},{s:'TS',n:'Trieste'},{s:'UD',n:'Udine'},{s:'VA',n:'Varese'},
+  {s:'VE',n:'Venezia'},{s:'VB',n:'Verbano-Cusio-Ossola'},{s:'VC',n:'Vercelli'},{s:'VR',n:'Verona'},
+  {s:'VV',n:'Vibo Valentia'},{s:'VI',n:'Vicenza'},{s:'VT',n:'Viterbo'},
+];
 
 // MODAL AUTH (Login + Registrazione)
 function ModalAuth({ onClose, onLogged }) {
@@ -688,16 +737,13 @@ function App() {
       if (search) {
         url += `&citta=ilike.%25${encodeURIComponent(search)}%25`;
       } else if (selectedRegion) {
-        const cities = REGIONE_CITTA[selectedRegion] || [];
-        if (cities.length) {
-          url += `&citta=in.(${cities.map(c => `"${c}"`).join(',')})`;
+        const province = REGIONE_PROVINCE[selectedRegion] || [];
+        if (province.length) {
+          url += `&provincia=in.(${province.join(',')})`;
         }
       }
       const res = await fetch(url, {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       const data = await res.json();
       setVenues(Array.isArray(data) ? data : []);
@@ -712,16 +758,13 @@ function App() {
       if (search) {
         url += `&citta=ilike.%25${encodeURIComponent(search)}%25`;
       } else if (selectedRegion) {
-        const cities = REGIONE_CITTA[selectedRegion] || [];
-        if (cities.length) {
-          url += `&citta=in.(${cities.map(c => `"${c}"`).join(',')})`;
+        const province = REGIONE_PROVINCE[selectedRegion] || [];
+        if (province.length) {
+          url += `&provincia=in.(${province.join(',')})`;
         }
       }
       const res = await fetch(url, {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       const data = await res.json();
       setEvents(Array.isArray(data) ? data : []);
