@@ -685,35 +685,25 @@ function App() {
     setLoading(true);
     try {
       let q = supabase.from('venues').select('*').order('created_at', { ascending: false });
-      if (search) {
-        q = q.ilike('citta', `%${search}%`);
-      } else if (selectedRegion) {
-        const cities = REGIONE_CITTA[selectedRegion] || [];
-        if (cities.length) q = q.in('citta', cities);
-      }
+      if (search) q = q.ilike('citta', `%${search}%`);
       const { data, error } = await q;
       if (error) console.error('loadVenues error:', error);
       setVenues(data || []);
     } catch(e) { console.error(e); }
     setLoading(false);
-  }, [search, selectedRegion]);
+  }, [search]);
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
     try {
       let q = supabase.from('events').select('*').order('data', { ascending: true });
-      if (search) {
-        q = q.ilike('citta', `%${search}%`);
-      } else if (selectedRegion) {
-        const cities = REGIONE_CITTA[selectedRegion] || [];
-        if (cities.length) q = q.in('citta', cities);
-      }
+      if (search) q = q.ilike('citta', `%${search}%`);
       const { data, error } = await q;
       if (error) console.error('loadEvents error:', error);
       setEvents(data || []);
     } catch(e) { console.error(e); }
     setLoading(false);
-  }, [search, selectedRegion]);
+  }, [search]);
 
   useEffect(() => { loadVenues(); loadEvents(); }, [loadVenues, loadEvents]);
 
