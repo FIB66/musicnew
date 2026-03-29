@@ -39,17 +39,23 @@ musicnew/
 ## 🗄️ Schema Database Supabase
 
 ### Tabella `venues` (locali)
-- id, nome, città, indirizzo, genere_musicale, descrizione, sito_web, immagine_url, creato_da, created_at
+- id, nome, citta, indirizzo, genere, descrizione, sito_web
+- ⚠️ NON ha `created_at` — ordinare per `id` non per `created_at`
 
 ### Tabella `events` (eventi)
-- id, titolo, venue_id, città, data, ora, tipo (concerto/festa/festival/jam), genere_musicale, descrizione, immagine_url, creato_da, created_at
+- id, titolo, venue_id, citta, data, ora, tipo, genere, descrizione, immagine_url, creato_da
 
 ### Tabella `users` (gestita da Supabase Auth)
 - id, email, username, avatar_url
 
 ### RLS Policies attive
-- `venues`: lettura pubblica ✅ — scrittura solo autenticati ✅
-- `events`: lettura pubblica ✅ — scrittura solo autenticati ✅
+- `venues`: lettura per `anon` e `authenticated` ✅ — scrittura solo `authenticated` ✅
+- `events`: lettura per `anon` e `authenticated` ✅ — scrittura solo `authenticated` ✅
+
+### Supabase Keys
+- Usare la **publishable key** (`sb_publishable_...`) — è la chiave corretta per progetti nuovi
+- La legacy anon key (`eyJhbGci...`) non funziona con i nuovi progetti
+- SDK versione: `@supabase/supabase-js@2.49.4`
 
 ---
 
@@ -64,25 +70,20 @@ musicnew/
 
 ### Sessione 2 — Mappa + GitHub Desktop (2026-03-29)
 - Creato `italia-map.js` — Web Component riutilizzabile con D3 + TopoJSON
-  - Mappa interattiva delle 20 regioni italiane
-  - Colori personalizzabili, eventi custom (`region-select`, `region-navigate`)
-  - Metodi pubblici: `setData()`, `selectRegion()`, `getSelected()`
 - Integrata la mappa in `index.html` con tema rosso/nero MusicNew
-- Risolto conflitto React + Web Component: mappa gestita fuori da React con `MutationObserver`
-- La mappa rimane stabile navigando tra i tab (Home → Locali → Eventi → Home)
-- Cliccando una regione filtra locali ed eventi per quella zona
-- Configurato GitHub Desktop (cartella: Documenti → GitHub → musicnew)
-- Deploy funzionante su GitHub Pages
+- Risolto conflitto React + Web Component con `MutationObserver`
+- Configurato GitHub Desktop e deploy su GitHub Pages
 
-### Sessione 3 — Supabase Auth + Sicurezza (2026-03-29)
-- Corretta la SUPABASE_KEY (sostituita secret key con anon/legacy key)
-- Abilitato RLS su `venues` ed `events`
-- Configurate RLS policies corrette:
-  - Lettura pubblica per tutti
-  - Scrittura solo per utenti autenticati (`auth.uid() IS NOT NULL`)
-- Decisione: autenticazione con **email + password** come base
-- In agenda: login sociale con **Facebook** e **Google** (dopo creazione pagina FB ufficiale)
-- Prossimo step: implementare login/registrazione email + password in `index.html`
+### Sessione 3 — Auth + Sicurezza + Fix Database (2026-03-29)
+- Corretta la SUPABASE_KEY (publishable key per progetti nuovi)
+- Abilitato RLS su `venues` ed `events` con policies corrette
+- Implementato sistema login/registrazione con Supabase Auth (email + password)
+- Header aggiornato: avatar + logout se loggato, bottone Accedi se non loggato
+- Bottoni `+ Locale` e `+ Evento` visibili solo se autenticati
+- Scoperto che la tabella `venues` non ha `created_at` — ordinamento cambiato a `id`
+- Filtro regione mappa temporaneamente disabilitato (da rifare)
+- Locali visibili e inserimento funzionanti ✅
+- Decisione: login Facebook e Google dopo creazione pagina FB ufficiale
 
 ---
 
@@ -98,22 +99,25 @@ musicnew/
 - [x] RLS e sicurezza database configurati
 
 ### Fase 2 — Autenticazione e inserimento contenuti ← SIAMO QUI
-- [ ] Login/registrazione utenti con email + password (Supabase Auth)
-- [ ] I bottoni + Locale e + Evento visibili solo se loggato
-- [ ] Form aggiunta locale (solo autenticati)
-- [ ] Form aggiunta evento (solo autenticati)
+- [x] Login/registrazione utenti con email + password
+- [x] Bottoni + Locale e + Evento solo se loggati
+- [x] Locali visibili sul sito
+- [x] Inserimento locali funzionante
+- [ ] Aggiungere colonna `created_at` alle tabelle `venues` ed `events`
+- [ ] Ripristinare filtro mappa per regione
+- [ ] Testare inserimento eventi
 - [ ] Pagina dettaglio locale con lista eventi
 - [ ] Ricerca per città
 
 ### Fase 2b — Login Sociale (dopo creazione pagina FB)
-- [ ] Login con Facebook (dopo creazione pagina ufficiale MusicNew)
+- [ ] Login con Facebook
 - [ ] Login con Google
 
 ### Fase 3 — UX e community
 - [ ] Commenti e recensioni locali
 - [ ] Profilo utente con eventi aggiunti
 - [ ] Filtri per genere musicale e tipo evento
-- [ ] Zoom su regione cliccata nella mappa (idea per futuro)
+- [ ] Zoom su regione cliccata nella mappa
 
 ### Fase 4 — Crescita
 - [ ] SEO ottimizzato per ogni città/locale
@@ -125,13 +129,14 @@ musicnew/
 
 ## 🛠️ Note tecniche importanti
 
-- **Web Component mappa:** vive fuori da React nel DOM, gestito con `MutationObserver` che lo riattacca ogni volta che l'anchor `#map-inline-anchor` riappare
-- **Supabase** — usare `@supabase/supabase-js` via CDN
-- **Supabase ANON KEY** — è la legacy anon key (`eyJhbGci...`), NON la publishable key (`sb_publishable_...`)
-- **RLS** — abilitato su tutte le tabelle, NON disabilitare mai
+- **Web Component mappa:** vive fuori da React nel DOM, gestito con `MutationObserver`
+- **Supabase SDK:** usare versione `2.49.4` esplicita, non `@2` generico
+- **Publishable key:** i nuovi progetti Supabase usano `sb_publishable_...` non `eyJhbGci...`
+- **venues.created_at:** NON ESISTE — usare `id` per ordinare
+- **Filtro regione mappa:** temporaneamente disabilitato, da rifare con fetch diretto
 - **React via CDN** — nessun build step
 - **GitHub Pages** — deploy automatico ad ogni push su `main`
-- **Download file:** usare sempre lo ZIP per scaricare più file insieme
+- **Authentication:** email confirm disabilitata — accesso immediato dopo registrazione
 
 ---
 
@@ -140,9 +145,8 @@ musicnew/
 - Modifica file → push su GitHub Desktop
 - Decisioni architetturali discusse prima di implementare
 - Un pezzo alla volta
-- Scaricare sempre i file come ZIP
-- **Prossimo step:** Implementare login/registrazione email + password
+- **Prossimo step:** Aggiungere `created_at` alle tabelle + ripristinare filtro mappa + testare eventi
 
 ---
 
-*Ultimo aggiornamento: 2026-03-29 — Sessione 3 — Supabase Auth + Sicurezza*
+*Ultimo aggiornamento: 2026-03-29 — Sessione 3 — Auth + Sicurezza + Fix Database*
