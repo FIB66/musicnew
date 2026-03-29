@@ -684,7 +684,7 @@ function App() {
   const loadVenues = useCallback(async () => {
     setLoading(true);
     try {
-      let q = supabase.from('venues').select('*').order('created_at', { ascending: false });
+      let q = supabase.from('venues').select('*').order('id', { ascending: false });
       if (search) q = q.ilike('citta', `%${search}%`);
       const { data, error } = await q;
       if (error) console.error('loadVenues error:', error);
