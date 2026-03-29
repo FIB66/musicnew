@@ -567,12 +567,17 @@ function App() {
   const loadVenues = useCallback(async () => {
     setLoading(true);
     let q = supabase.from('venues').select('*').order('created_at', { ascending: false });
-    if (search) q = q.ilike('citta', `%${search}%`);
-    else if (selectedRegion) {
+    if (search) {
+      q = q.ilike('citta', `%${search}%`);
+    } else if (selectedRegion) {
       const cities = REGIONE_CITTA[selectedRegion] || [];
-      if (cities.length) q = q.or(cities.map(c => `citta.ilike.%${c}%`).join(','));
+      if (cities.length) {
+        const filter = cities.map(c => `citta.ilike.%${c}%`).join(',');
+        q = q.or(filter);
+      }
     }
-    const { data } = await q;
+    const { data, error } = await q;
+    if (error) console.error('loadVenues error:', error);
     setVenues(data || []);
     setLoading(false);
   }, [search, selectedRegion]);
@@ -580,12 +585,17 @@ function App() {
   const loadEvents = useCallback(async () => {
     setLoading(true);
     let q = supabase.from('events').select('*').order('data', { ascending: true });
-    if (search) q = q.ilike('citta', `%${search}%`);
-    else if (selectedRegion) {
+    if (search) {
+      q = q.ilike('citta', `%${search}%`);
+    } else if (selectedRegion) {
       const cities = REGIONE_CITTA[selectedRegion] || [];
-      if (cities.length) q = q.or(cities.map(c => `citta.ilike.%${c}%`).join(','));
+      if (cities.length) {
+        const filter = cities.map(c => `citta.ilike.%${c}%`).join(',');
+        q = q.or(filter);
+      }
     }
-    const { data } = await q;
+    const { data, error } = await q;
+    if (error) console.error('loadEvents error:', error);
     setEvents(data || []);
     setLoading(false);
   }, [search, selectedRegion]);
