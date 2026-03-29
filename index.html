@@ -367,6 +367,17 @@
 </head>
 <body>
 <div id="root"></div>
+<div id="map-root" style="display:none; justify-content:center; align-items:center;">
+  <italia-map
+    id="the-italia-map"
+    width="280"
+    height="470"
+    color-base="#e63946"
+    color-hover="#ff6b6b"
+    show-list="false"
+    show-info="false"
+  ></italia-map>
+</div>
 <script type="text/babel">
 const { useState, useEffect, useCallback } = React;
 
@@ -581,23 +592,10 @@ function App() {
 
   useEffect(() => { loadVenues(); loadEvents(); }, [loadVenues, loadEvents]);
 
-  // Crea il web component della mappa nel div container (compatibile con React/Babel)
+  // Listener eventi mappa (una sola volta)
   useEffect(() => {
-    const container = mapRef.current;
-    if (!container) return;
-
-    let mapEl = container.querySelector('italia-map');
-    if (!mapEl) {
-      mapEl = document.createElement('italia-map');
-      mapEl.setAttribute('width', '300');
-      mapEl.setAttribute('height', '500');
-      mapEl.setAttribute('color-base', '#e63946');
-      mapEl.setAttribute('color-hover', '#ff6b6b');
-      mapEl.setAttribute('show-list', 'false');
-      mapEl.setAttribute('show-info', 'false');
-      container.appendChild(mapEl);
-    }
-
+    const mapEl = document.getElementById('the-italia-map');
+    if (!mapEl) return;
     const handler = (e) => {
       setSelectedRegion(e.detail.name);
       setSearch('');
@@ -683,43 +681,7 @@ function App() {
               )}
             </div>
 
-            <div className="map-col-wrap">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 150 220 430" width="240"
-                style={{filter:'drop-shadow(0 0 28px rgba(230,57,70,0.45))'}}>
-                {/* Penisola + Nord Italia */}
-                <path fill="#e63946" fillOpacity="0.8" stroke="#ff6b6b" strokeWidth="0.8"
-                  d="M60,152 L68,150 L78,151 L88,153 L96,156 L104,158 L114,158 L122,156
-                     L132,154 L140,155 L148,158 L156,162 L162,168 L166,176 L168,184
-                     L170,192 L174,198 L180,202 L186,206 L190,212 L192,220 L190,228
-                     L186,234 L180,238 L174,240 L168,242 L164,248 L162,256 L164,264
-                     L168,272 L174,278 L180,284 L184,292 L184,300 L180,308 L174,314
-                     L168,318 L162,322 L158,330 L156,340 L154,350 L152,360 L148,368
-                     L144,376 L140,382 L136,388 L130,394 L124,400 L118,408 L114,416
-                     L112,424 L110,432 L108,440 L104,448 L98,454 L92,458 L88,462
-                     L84,468 L82,474 L84,480 L90,484 L96,484 L102,480 L106,474
-                     L108,468 L104,462 L100,458 L100,452 L104,446 L110,442 L116,444
-                     L120,450 L120,458 L116,464 L112,470 L112,476 L116,480 L122,482
-                     L128,480 L132,474 L132,468 L128,462 L124,456 L126,450 L132,446
-                     L138,448 L142,454 L142,462 L138,468 L134,474 L134,480 L140,484
-                     L146,484 L150,480 L150,472 L146,466 L142,460 L144,454 L150,450
-                     L156,452 L160,458 L160,466 L156,472 L152,478 L154,484 L160,488
-                     L166,488 L170,482 L168,476 L164,470 L164,464 L170,460 L176,462
-                     L178,470 L176,478 L170,484 L172,490 L178,492 L184,488 L184,482
-                     L180,476 L178,468 L182,462 L188,462 L192,468 L192,476 L188,482
-                     L186,488 L190,492 L196,490 L198,484 L194,478 L192,470 L196,464
-                     L202,464 L206,470 L206,478 L202,484 L202,490
-                     L78,151 Z" />
-                {/* Sicilia */}
-                <path fill="#e63946" fillOpacity="0.8" stroke="#ff6b6b" strokeWidth="0.8"
-                  d="M56,490 L66,486 L78,484 L90,484 L100,488 L108,494 L112,502
-                     L108,510 L100,514 L90,516 L78,514 L68,510 L58,504 L54,496 Z" />
-                {/* Sardegna */}
-                <path fill="#e63946" fillOpacity="0.8" stroke="#ff6b6b" strokeWidth="0.8"
-                  d="M18,300 L26,294 L34,292 L42,294 L48,300 L50,310 L50,322
-                     L48,334 L44,344 L36,350 L26,350 L18,344 L14,334 L14,320
-                     L16,308 Z" />
-              </svg>
-            </div>
+            <div className="map-col-wrap" id="map-inline-anchor"></div>
           </div>
         </div>
 
@@ -873,6 +835,31 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+<script>
+// Gestione mappa completamente fuori da React
+// MutationObserver: ogni volta che #map-inline-anchor appare nel DOM, ci sposta la mappa
+(function() {
+  const mapRoot = document.getElementById('map-root');
+  const mapEl   = document.getElementById('the-italia-map');
+
+  function attachMap() {
+    const anchor = document.getElementById('map-inline-anchor');
+    if (anchor && mapRoot && !anchor.contains(mapRoot)) {
+      anchor.appendChild(mapRoot);
+      mapRoot.style.display = 'flex';
+      if (mapEl) mapEl.style.display = 'block';
+    }
+  }
+
+  // Osserva cambiamenti nel DOM
+  const observer = new MutationObserver(attachMap);
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  // Prova subito
+  attachMap();
+})();
 </script>
 </body>
 </html>
