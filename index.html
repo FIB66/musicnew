@@ -824,7 +824,7 @@ function App() {
               <p>Sii il primo ad aggiungere un locale!</p>
             </div> :
             <div className="grid grid-3">
-              {venues.slice(0,6).map(v => (
+              {venues.slice(0,24).map(v => (
                 <div key={v.id} className="card">
                   <div className="card-img">{getEmoji(v.genere)}</div>
                   <div className="card-body">
